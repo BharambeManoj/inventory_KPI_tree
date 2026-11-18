@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VM/LOG-IN INVENTORY KPI TREE | ChkP 1810</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN for Interactive Trend Modals -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Bosch Sans', 'Bosch Office Sans', 'Inter', Arial, sans-serif;
+    }
+
+    /* 1. Top Bosch Supergraphic Bar (4px) */
+    .bosch-supergraphic {
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, #e20015 0%, #b90276 22%, #50237f 42%, #005691 64%, #008ecf 82%, #00884a 100%);
+    }
+
+    .bosch-supergraphic-3px {
+      height: 3px;
+      width: 100%;
+      background: linear-gradient(90deg, #e20015 0%, #b90276 22%, #50237f 42%, #005691 64%, #008ecf 82%, #00884a 100%);
+    }
+
+    /* 2. Compulsory Neutral Gray Scrollbar (Never Purple) */
+    .bosch-sidebar-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 #f1f5f9;
+    }
+    .bosch-sidebar-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .bosch-sidebar-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    .bosch-sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 9999px;
+    }
+    .bosch-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: #525f6b;
+    }
+
+    /* 3. Bosch Dark Gradient Banner (.bosch-dark-banner) */
+    .bosch-dark-banner {
+      background: linear-gradient(135deg, #09131c 0%, #0d252c 55%, #0e3a2f 100%);
+    }
+
+    /* 4. KPI Tree Card Styling (Strictly Contained & Aligned) */
+    .kpi-node-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 0.65rem;
+      box-shadow: 0 3px 10px -2px rgba(15, 23, 42, 0.08);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+      position: relative;
+      z-index: 10;
+      overflow: hidden;
+    }
+    .kpi-node-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -4px rgba(15, 23, 42, 0.14);
+    }
+    .kpi-node-card.search-match {
+      outline: 3px solid #f59e0b;
+      box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.25);
+    }
+
+    .kpi-node-header {
+      background: linear-gradient(90deg, #74c7b8 0%, #8cd4c7 100%);
+      border-bottom: 1px solid #5bb5a5;
+    }
+
+    .kpi-table-nums {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .tier-ribbon-vertical {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      letter-spacing: 0.12em;
+    }
+
+    /* 5. Executive Summary KPI Cards & Multi-Select Filter UI */
+    .summary-kpi-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      box-shadow: 0 4px 15px -3px rgba(15, 23, 42, 0.06), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+      transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .summary-kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -3px rgba(15, 23, 42, 0.06);
+      border-color: var(--card-accent, #005691);
+    }
+    .summary-kpi-card .card-ambient-glow {
+      position: absolute;
+      top: -28px;
+      right: -28px;
+      width: 110px;
+      height: 110px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, var(--card-accent-soft, rgba(0, 86, 145, 0.14)) 0%, transparent 70%);
+      pointer-events: none;
+      transition: transform 0.3s ease;
+    }
+    .summary-kpi-card:hover .card-ambient-glow {
+      transform: scale(1.22);
+    }
+    .summary-kpi-progress-track {
+      height: 5px;
+      width: 100%;
+      background-color: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .summary-kpi-progress-bar {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Multi-Select Dropdown Styling */
+    .ms-dropdown-wrapper {
+      position: relative;
+    }
+    .ms-trigger-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 0.65rem;
+      border: 1px solid #cbd5e1;
+      background-color: #ffffff;
+      padding: 0.36rem 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #1e293b;
+      box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      text-align: left;
+    }
+    .ms-trigger-btn:hover {
+      border-color: #15803d;
+      background-color: #f8fafc;
+    }
+    .ms-trigger-btn.ms-open {
+      border-color: #15803d;
+      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.16);
+    }
+    .ms-panel {
+      position: absolute;
+      left: 0;
+      min-width: 230px;
+      top: calc(100% + 4px);
+      z-index: 60;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.75rem;
+      box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+    .ms-option-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.42rem 0.65rem;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      border-radius: 0.45rem;
+      transition: background-color 0.12s ease;
+    }
+    .ms-option-row:hover {
+      background-color: #f0fdf4;
+    }
+    .ms-option-row.ms-checked {
+      background-color: #ecfdf5;
+      color: #14532d;
+      font-weight: 700;
+    }
+    .ms-checkbox {
+      width: 14px;
+      height: 14px;
+      accent-color: #15803d;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body class="bg-[#f4f7f6] text-slate-800 h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- TOP 4PX BOSCH SUPERGRAPHIC BAR -->
+  <div class="bosch-supergraphic shrink-0"></div>
+
+  <!-- EMBEDDABLE KPI TREE DASHBOARD COMPONENT ROOT CONTAINER -->
+  <div id="kpiDashboardRoot" class="flex-1 flex flex-col overflow-hidden w-full h-full bg-[#f4f7f6]">
+
+    <!-- 1. COMPACT TOP DASHBOARD TOOLBAR (Merged VS Tabs, Search, View Mode, Actions, Filters & Status) -->
+    <header id="dashboardToolbar" class="shrink-0 z-30 bg-white border-b border-slate-200 shadow-xs">
+      <!-- Toolbar Row 1: Bosch Dark Gradient Banner -->
+      <section class="bosch-dark-banner px-5 py-2.5 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <!-- Left: Value Stream Tabs -->
+        <div class="flex items-center space-x-1 bg-white/10 p-1 rounded-xl border border-white/15">
+          <button onclick="quickSelectVS('ESP-ABS')" data-vs="ESP-ABS" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            ESP/ABS
+          </button>
+          <button onclick="quickSelectVS('VDS')" data-vs="VDS" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            VDS
+          </button>
+          <button onclick="quickSelectVS('ATC')" data-vs="ATC" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            ATC
+          </button>
+          <button onclick="quickSelectVS('NBS')" data-vs="NBS" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            NBS
+          </button>
+          <button onclick="quickSelectVS('OSS')" data-vs="OSS" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            OSS
+          </button>
+          <button onclick="quickSelectVS('VM-IN')" data-vs="VM-IN" class="vs-tab-btn px-3 py-1.5 rounded-lg text-xs font-extrabold transition">
+            VM-IN
+          </button>
+        </div>
+
+        <!-- Center/Right: Global Search, View Switcher, Reload Excel, Clear Filters -->
+        <div class="flex items-center space-x-2.5 flex-wrap">
+          <!-- Global Search -->
+          <div class="relative">
+            <input
+              id="globalSearchInput"
+              type="text"
+              oninput="handleGlobalSearch(this.value)"
+              placeholder="Search Rohit Tapkir, Rohan Gujar, ECU..."
+              class="w-56 md:w-64 rounded-xl bg-white/10 border border-white/20 pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-300 focus:outline-none focus:bg-white/15 focus:border-emerald-400 transition"
+            />
+            <svg class="w-3.5 h-3.5 text-slate-300 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" />
+            </svg>
+          </div>
+
+          <!-- View Switcher -->
+          <div class="flex items-center bg-black/30 p-1 rounded-xl border border-white/15">
+            <button
+              id="btnViewTree"
+              onclick="switchMainView('tree')"
+              class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-[#15803d] text-white shadow transition"
+            >
+              KPI Tree View
+            </button>
+            <button
+              id="btnViewTables"
+              onclick="switchMainView('tables')"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition"
+            >
+              Main &amp; LOP3 Tables
+            </button>
+          </div>
+
+          <!-- Reload Excel Button -->
+          <button
+            onclick="reloadExcelFiles()"
+            class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-extrabold transition shadow-xs border border-emerald-500/50"
+            title="Re-read Main &amp; Sheet1 from Excel files on disk"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span class="hidden sm:inline">Reload Excel</span>
+          </button>
+
+          <!-- Clear Filters Button -->
+          <button
+            onclick="clearAllFilters()"
+            class="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-xs font-bold transition border border-white/15"
+            title="Reset all filters to defaults"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>Clear</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Toolbar Row 2: Compact Horizontal Filter & Status Strip -->
+      <div class="px-5 py-2 bg-slate-50 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <!-- Left Side: Horizontal Filter Controls -->
+        <div class="flex items-center space-x-3 flex-wrap">
+          <div class="flex items-center gap-1.5 text-slate-600 font-extrabold uppercase text-[10.5px] tracking-wider">
+            <svg class="w-3.5 h-3.5 text-[#15803d]" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            <span>Filters:</span>
+          </div>
+
+          <!-- 1. Year Filter Multi-Select Dropdown -->
+          <div class="ms-dropdown-wrapper min-w-[130px] max-w-[155px]" id="msWrap_year">
+            <span id="msCount_year" class="hidden"></span>
+            <div id="msContainer_year"></div>
+          </div>
+
+          <!-- 2. Month Filter Single-Select Dropdown -->
+          <div class="ms-dropdown-wrapper min-w-[180px] max-w-[220px]" id="msWrap_month_year">
+            <span id="msCount_month_year" class="hidden"></span>
+            <div id="msContainer_month_year"></div>
+          </div>
+
+          <!-- Active Filter Summary Pill -->
+          <div class="hidden md:flex items-center gap-1.5 pl-2 border-l border-slate-200">
+            <span class="text-[9.5px] font-extrabold uppercase text-slate-400">Active:</span>
+            <span id="activeFilterBadge" class="text-[10.5px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#15803d] border border-emerald-200 truncate max-w-[260px]">
+              ESP-ABS
+            </span>
+          </div>
+        </div>
+
+        <!-- Right Side: Plant & Last Refresh -->
+        <div class="flex items-center space-x-3.5 text-xs flex-wrap">
+          <!-- Plant & Refresh Meta -->
+          <div class="flex items-center space-x-2 text-[11px]">
+            <span id="headerPlant" class="font-extrabold text-slate-800">ChkP 1810</span>
+            <span class="text-slate-300">|</span>
+            <div class="flex items-center space-x-1" title="Last data refresh time">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#15803d] animate-pulse"></span>
+              <span id="headerLastRefresh" class="text-[10.5px] text-[#15803d] font-bold">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. MAIN WORKSPACE (FIXED 4 KPI CARDS + SCROLLABLE TREE/TABLES BELOW) -->
+    <main id="mainWorkspaceBg" class="flex-1 flex flex-col overflow-hidden bg-[#f4f7f6]">
+
+      <!-- FIXED TOP SECTION (NEVER SCROLLS OUT OF POSITION): 4 KPI Summary Cards -->
+      <div id="fixedSummarySection" class="shrink-0 z-20 bg-[#f4f7f6] border-b border-slate-200/80 shadow-xs">
+
+        <!-- NO TARGET SPECIFIED BANNER (DISPLAYED ONLY WHEN TARGET IS 0 / BLANK / MISSING) -->
+        <div id="noTargetBanner" class="hidden px-5 pt-3">
+          <div class="w-full rounded-xl bg-amber-50 border border-amber-300 px-4 py-2 text-center text-xs font-extrabold text-amber-800 shadow-2xs">
+            No target specified
+          </div>
+        </div>
+
+        <!-- FIXED 4 KPI SUMMARY CARDS -->
+        <div class="px-5 py-3.5">
+          <section id="summaryCardsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></section>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- SCROLLABLE LOWER WORKSPACE (KPI TREE OR TABLES)                     -->
+      <!-- =================================================================== -->
+      <div id="scrollableCanvasArea" class="flex-1 overflow-y-auto bosch-sidebar-scroll p-5">
+
+        <!-- VIEW 1: INTERACTIVE 3-TIER KPI TREE CANVAS -->
+        <section id="viewTreeSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-x-auto bosch-sidebar-scroll">
+          <div id="treeCanvasWrapper" class="relative min-w-[1420px] pb-4">
+            <svg
+              id="treeConnectorSvg"
+              class="absolute inset-0 w-full h-full pointer-events-none z-0"
+            ></svg>
+
+            <div class="relative z-10 space-y-7">
+
+              <!-- TIER 1: PLANT KPI -->
+              <div class="flex items-stretch gap-4">
+                <div class="w-10 shrink-0 rounded-lg bg-[#c4c4c4] text-white font-black text-xs flex items-center justify-center py-4 shadow-sm">
+                  <span class="tier-ribbon-vertical">PLANT KPI</span>
+                </div>
+                <div class="flex-1 flex justify-center items-center py-1" id="tier1Container"></div>
+              </div>
+
+              <!-- TIER 2: MONITORING KPI -->
+              <div class="flex items-stretch gap-4">
+                <div class="w-10 shrink-0 rounded-lg bg-[#7030a0] text-white font-black text-xs flex items-center justify-center py-6 shadow-sm">
+                  <span class="tier-ribbon-vertical">MONITORING KPI</span>
+                </div>
+                <div class="flex-1 space-y-8 py-1">
+                  <div id="tier2AContainer" class="grid grid-cols-3 gap-5 justify-items-center"></div>
+                  <div id="tier2BContainer" class="grid grid-cols-4 gap-3.5 justify-items-center"></div>
+                </div>
+              </div>
+
+              <!-- TIER 3: IMPROVEMENT KPI (STRICTLY FROM KPI LOP3 SHEET1) -->
+              <div class="flex items-stretch gap-4">
+                <div class="w-10 shrink-0 rounded-lg bg-[#218c8d] text-white font-black text-xs flex items-center justify-center py-8 shadow-sm">
+                  <span class="tier-ribbon-vertical">IMPROVEMENT KPI</span>
+                </div>
+                <div class="flex-1 space-y-7 py-1">
+                  <!-- No Data Notice for Tier 3 -->
+                  <div id="tier3NoDataNotice" class="hidden"></div>
+
+                  <!-- Branch A (4W / VDS) -->
+                  <div class="space-y-6">
+                    <div id="tier3Parent4WContainer" class="flex justify-center pr-36"></div>
+                    <div id="tier3Children4WContainer" class="grid grid-cols-5 gap-3"></div>
+                  </div>
+
+                  <!-- Branch B (2W / LPS) -->
+                  <div class="space-y-6 pt-2">
+                    <div id="tier3Parent2WContainer" class="flex justify-end pr-24"></div>
+                    <div id="tier3Children2WContainer" class="grid grid-cols-6 gap-2.5 pl-12"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: MAIN & LOP3 DATA TABLES VIEW -->
+        <section id="viewTablesSection" class="hidden space-y-5">
+
+          <!-- Table Header Information Bar -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#15803d]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                  Data Tables View
+                </h3>
+                <p class="text-[11px] text-slate-500">
+                  Displaying <span class="font-bold text-slate-700">Main</span> &amp; <span class="font-bold text-slate-700">LOP3</span> table rows filtered by selected Year &amp; Month (<span id="tableYearLabel" class="font-bold text-[#15803d]"></span>)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table 1: Main & CF Sheet Inventory Table -->
+          <div class="table-card-surface bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900">
+                  Main Sheet Inventory Table (Inventory Actual Vs Forecast.xlsx [Main &amp; CF])
+                </h3>
+                <p class="text-[11px] text-slate-500">
+                  Strictly unpivoted from the <span class="font-mono font-bold">Main</span> &amp; <span class="font-mono font-bold">CF</span> sheets
+                </p>
+              </div>
+              <span id="cfTableCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-[#15803d] border border-emerald-200">
+                0 rows
+              </span>
+            </div>
+            <div class="overflow-x-auto max-h-96 bosch-sidebar-scroll">
+              <table class="w-full text-left border-collapse text-[11px]">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-[10px] font-extrabold sticky top-0 border-b-2 border-[#525f6b]">
+                  <tr>
+                    <th class="py-2.5 px-4">Category</th>
+                    <th class="py-2.5 px-4">Value Stream</th>
+                    <th class="py-2.5 px-4">Month year</th>
+                    <th class="py-2.5 px-4">CAT-YEAR</th>
+                    <th class="py-2.5 px-4 text-right">CF02</th>
+                    <th class="py-2.5 px-4 text-right">CF05</th>
+                    <th class="py-2.5 px-4 text-right">CF09</th>
+                    <th class="py-2.5 px-4 text-right text-[#8b2c86]">Target (Main Sheet)</th>
+                    <th class="py-2.5 px-4 text-right">Actual Value</th>
+                    <th class="py-2.5 px-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="cfTableBody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Table 2: KPI LOP3 Table -->
+          <div class="table-card-surface bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900">
+                  KPI LOP3 Table (KPI LOP3.xlsx [Sheet1])
+                </h3>
+                <p class="text-[11px] text-slate-500">
+                  Strictly unpivoted from <span class="font-mono font-bold">Sheet1</span>
+                </p>
+              </div>
+              <span id="lop3TableCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                0 rows
+              </span>
+            </div>
+            <div class="overflow-x-auto max-h-96 bosch-sidebar-scroll">
+              <table class="w-full text-left border-collapse text-[11px]">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-[10px] font-extrabold sticky top-0 border-b-2 border-[#525f6b]">
+                  <tr>
+                    <th class="py-2.5 px-4">Value Stream</th>
+                    <th class="py-2.5 px-4">Product</th>
+                    <th class="py-2.5 px-4">Planner</th>
+                    <th class="py-2.5 px-4">Category</th>
+                    <th class="py-2.5 px-4">Month year</th>
+                    <th class="py-2.5 px-4 text-right">Target (Col E)</th>
+                    <th class="py-2.5 px-4 text-right">ValLOP3</th>
+                    <th class="py-2.5 px-4 text-right">LOP3 DIO</th>
+                    <th class="py-2.5 px-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="lop3TableBody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 1: STRICTLY TREND GRAPH MODAL (OPENED ONLY BY GRAPH ICON 📈)       -->
+  <!-- ======================================================================= -->
+  <div id="trendModal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="modal-card-surface bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden">
+      <div class="bosch-supergraphic"></div>
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 id="trendModalTitle" class="text-[14px] font-extrabold text-slate-900">KPI Monthly Trend Graph</h3>
+          <p id="trendModalSubtitle" class="text-[11px] text-slate-600 font-medium mt-0.5">
+            Historical Monthly Series Directly from Excel Sheet Columns
+          </p>
+        </div>
+        <button onclick="closeTrendModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div id="trendMetricTabs" class="flex flex-wrap gap-2"></div>
+        <div class="h-72 w-full">
+          <canvas id="trendChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 2: STRICTLY PEOPLE / PLANNER PAGE MODAL (OPENED ONLY BY USER ICON)-->
+  <!-- ======================================================================= -->
+  <div id="plannerModal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="modal-card-surface bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden">
+      <div class="bosch-supergraphic"></div>
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 id="plannerModalTitle" class="text-[14px] font-extrabold text-slate-900">Responsible Planner / People Breakdown</h3>
+          <p id="plannerModalSubtitle" class="text-[11px] text-slate-600 font-medium">
+            Strictly from KPI LOP3.xlsx [Sheet1]
+          </p>
+        </div>
+        <button onclick="closePlannerModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-6">
+        <div class="overflow-x-auto max-h-80 bosch-sidebar-scroll border border-slate-200 rounded-xl">
+          <table class="w-full text-left border-collapse text-[11px]">
+            <thead class="bg-slate-100 text-slate-700 uppercase text-[10px] font-extrabold">
+              <tr>
+                <th class="py-2.5 px-3.5 border-b">Planner Name (Col C)</th>
+                <th class="py-2.5 px-3.5 border-b">Product (Col B)</th>
+                <th class="py-2.5 px-3.5 border-b">Category (Col D)</th>
+                <th class="py-2.5 px-3.5 border-b">Month</th>
+                <th class="py-2.5 px-3.5 border-b text-right">Target (Col E)</th>
+                <th class="py-2.5 px-3.5 border-b text-right">ValLOP3</th>
+                <th class="py-2.5 px-3.5 border-b text-right">LOP3 DIO</th>
+              </tr>
+            </thead>
+            <tbody id="plannerModalBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VANILLA JS APPLICATION ENGINE -->
+  <script>
+    let STATE = {
+      data: null,
+      view: 'tree',
+      searchQuery: '',
+      activeTrendCat: null,
+      trendChartInstance: null,
+      filters: {
+        value_stream: 'ESP-ABS',
+        year: '',
+        month_year: ''
+      }
+    };
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function fmtNum(val) {
+      const n = Number(val);
+      if (isNaN(n)) return '0.00';
+      return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtRelPct(val) {
+      const n = Number(val);
+      if (isNaN(n)) return '0.0%';
+      const absVal = Math.abs(n);
+      const sign = n > 0 ? '+' : (n < 0 ? '-' : '');
+      if (absVal < 10) {
+        return `${sign}${absVal.toFixed(1)}%`;
+      }
+      return `${sign}${Math.round(absVal)}%`;
+    }
+
+    async function loadDashboardData() {
+      const params = new URLSearchParams({
+        ...STATE.filters,
+        _t: Date.now()
+      });
+      const res = await fetch(`/api/dashboard?${params.toString()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const payload = await res.json();
+      STATE.data = payload;
+      STATE.filters = { ...payload.active_filters };
+
+      renderHeaderAndFilters(payload);
+      renderSummaryCards(payload.summary_cards);
+      renderKpiTree(payload.tree);
+      renderDataTables(payload.tables);
+      highlightQuickTabs(payload.active_filters.value_stream);
+
+      requestAnimationFrame(() => {
+        drawOrthogonalConnectors();
+      });
+      notifyParentState();
+    }
+
+    async function reloadExcelFiles() {
+      const res = await fetch('/api/reload', { method: 'POST', cache: 'no-store' });
+      if (res.ok) {
+        await loadDashboardData();
+      }
+    }
+
+    let OPEN_MS_KEY = null;
+
+    const BENCHMARK_LABELS = {
+      'CF09': 'CF09 (Sep Column)',
+      'CF05': 'CF05 (May Column)',
+      'CF02': 'CF02 (Feb Column)',
+      'PA': 'Target (Main Sheet Target Row)'
+    };
+
+    function parseSelectedList(rawVal, allToken = null) {
+      if (!rawVal) return [];
+      const s = String(rawVal).trim();
+      if (!s || (allToken && s === allToken)) return [];
+      return s.split(',').map(x => x.trim()).filter(Boolean);
+    }
+
+    function renderMultiSelectWidget(config) {
+      const {
+        key,
+        options,
+        selectedRaw,
+        placeholder,
+        allToken = null,
+        labelMap = null
+      } = config;
+
+      const container = document.getElementById(`msContainer_${key}`);
+      const countBadge = document.getElementById(`msCount_${key}`);
+      if (!container) return;
+
+      const selectedArr = parseSelectedList(selectedRaw, allToken);
+      const selectedSet = new Set(selectedArr.map(String));
+      const totalOpts = (options || []).length;
+      const selCount = selectedSet.size;
+
+      if (countBadge) {
+        if (selCount === 0) {
+          countBadge.textContent = allToken ? 'All' : (key === 'month_year' ? 'All Months' : 'None');
+          countBadge.className = 'text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200';
+        } else {
+          countBadge.textContent = `${selCount} Selected`;
+          countBadge.className = 'text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-50 text-[#15803d] border border-emerald-200';
+        }
+      }
+
+      let summaryText = placeholder;
+      if (selCount === 1) {
+        const onlyVal = Array.from(selectedSet)[0];
+        summaryText = (labelMap && labelMap[onlyVal]) ? labelMap[onlyVal] : onlyVal;
+      } else if (selCount === 2) {
+        const vals = Array.from(selectedSet).map(v => (labelMap && labelMap[v]) ? labelMap[v].split(' ')[0] : v);
+        summaryText = vals.join(', ');
+      } else if (selCount > 2) {
+        const firstVal = Array.from(selectedSet)[0];
+        const firstDisp = (labelMap && labelMap[firstVal]) ? labelMap[firstVal].split(' ')[0] : firstVal;
+        summaryText = `${firstDisp} +${selCount - 1} more`;
+      }
+
+      const isOpen = OPEN_MS_KEY === key;
+      const showSearch = totalOpts > 5;
+
+      const optionsHtml = (options || []).map(opt => {
+        const valStr = String(opt);
+        const dispStr = (labelMap && labelMap[valStr]) ? labelMap[valStr] : valStr;
+        const isChecked = selectedSet.has(valStr);
+        return `
+          <label class="ms-option-row ${isChecked ? 'ms-checked' : ''}" data-opt-label="${escapeHtml(dispStr.toLowerCase())}">
+            <input
+              type="checkbox"
+              class="ms-checkbox"
+              value="${escapeHtml(valStr)}"
+              ${isChecked ? 'checked' : ''}
+              onchange="toggleMsOption('${escapeHtml(key)}', '${escapeHtml(valStr)}', this.checked)"
+            />
+            <span class="truncate flex-1">${escapeHtml(dispStr)}</span>
+            ${isChecked ? `
+              <span class="w-1.5 h-1.5 rounded-full bg-[#15803d] shrink-0"></span>
+            ` : ''}
+          </label>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <button
+          type="button"
+          onclick="toggleMsDropdown(event, '${escapeHtml(key)}')"
+          class="ms-trigger-btn ${isOpen ? 'ms-open' : ''}"
+        >
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 pr-2">
+            <span class="truncate ${selCount > 0 ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-semibold'}">
+              ${escapeHtml(summaryText)}
+            </span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${selCount > 0 ? `
+              <span class="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-[#15803d] text-white leading-tight">
+                ${selCount}
+              </span>
+            ` : ''}
+            <svg class="w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${isOpen ? 'rotate-180 text-[#15803d]' : ''}" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        <div id="msPanel_${escapeHtml(key)}" class="ms-panel ${isOpen ? '' : 'hidden'}" onclick="event.stopPropagation()">
+          <div class="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-extrabold">
+            <button
+              type="button"
+              onclick="selectAllMsOptions('${escapeHtml(key)}')"
+              class="text-[#15803d] hover:underline uppercase tracking-wider"
+            >
+              Select All (${totalOpts})
+            </button>
+            <button
+              type="button"
+              onclick="clearMsOptions('${escapeHtml(key)}')"
+              class="text-rose-600 hover:underline uppercase tracking-wider"
+            >
+              ${allToken ? 'Reset All' : 'Clear'}
+            </button>
+          </div>
+          ${showSearch ? `
+            <div class="p-1.5 border-b border-slate-100">
+              <input
+                type="text"
+                placeholder="Filter options..."
+                oninput="filterMsOptionList('${escapeHtml(key)}', this.value)"
+                class="ms-search-input w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-[#15803d]"
+              />
+            </div>
+          ` : ''}
+          <div id="msList_${escapeHtml(key)}" class="max-h-48 overflow-y-auto bosch-sidebar-scroll p-1.5 space-y-0.5">
+            ${optionsHtml || '<div class="py-2 px-3 text-[11px] text-slate-400 italic">No options available</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSingleSelectMonthWidget(config) {
+      const {
+        options,
+        selectedRaw,
+        placeholder = 'Select Month',
+        labelMap = null
+      } = config;
+
+      const container = document.getElementById('msContainer_month_year');
+      const countBadge = document.getElementById('msCount_month_year');
+      if (!container) return;
+
+      const selectedVal = selectedRaw ? String(selectedRaw).trim() : '';
+      const totalOpts = (options || []).length;
+
+      if (countBadge) {
+        if (!selectedVal) {
+          countBadge.textContent = 'All Months';
+          countBadge.className = 'text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200';
+        } else {
+          const shortDisp = (labelMap && labelMap[selectedVal]) ? labelMap[selectedVal].split(' ')[0] : selectedVal;
+          countBadge.textContent = shortDisp;
+          countBadge.className = 'text-[9.5px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-50 text-[#15803d] border border-emerald-200';
+        }
+      }
+
+      let summaryText = placeholder;
+      if (selectedVal) {
+        summaryText = (labelMap && labelMap[selectedVal]) ? labelMap[selectedVal] : selectedVal;
+      } else {
+        summaryText = 'All Months (Year Average)';
+      }
+
+      const isOpen = OPEN_MS_KEY === 'month_year';
+      const showSearch = totalOpts > 6;
+
+      const allMonthsActive = !selectedVal;
+      let optionsHtml = `
+        <button
+          type="button"
+          onclick="selectSingleMonth('')"
+          class="w-full text-left px-2.5 py-1.5 rounded-md text-[11px] flex items-center justify-between transition ${allMonthsActive ? 'bg-emerald-50 text-[#15803d] font-black' : 'text-slate-700 font-semibold hover:bg-slate-100'}"
+          data-opt-label="all months year average"
+        >
+          <span class="truncate flex-1">All Months (Year Average)</span>
+          ${allMonthsActive ? '<svg class="w-3.5 h-3.5 text-[#15803d] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+        </button>
+      `;
+
+      optionsHtml += (options || []).map(opt => {
+        const valStr = String(opt);
+        const dispStr = (labelMap && labelMap[valStr]) ? labelMap[valStr] : valStr;
+        const isSelected = selectedVal === valStr;
+        return `
+          <button
+            type="button"
+            onclick="selectSingleMonth('${escapeHtml(valStr)}')"
+            class="w-full text-left px-2.5 py-1.5 rounded-md text-[11px] flex items-center justify-between transition ${isSelected ? 'bg-emerald-50 text-[#15803d] font-black' : 'text-slate-700 font-semibold hover:bg-slate-100'}"
+            data-opt-label="${escapeHtml(dispStr.toLowerCase())}"
+          >
+            <span class="truncate flex-1">${escapeHtml(dispStr)}</span>
+            ${isSelected ? '<svg class="w-3.5 h-3.5 text-[#15803d] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+          </button>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <button
+          type="button"
+          onclick="toggleMsDropdown(event, 'month_year')"
+          class="ms-trigger-btn ${isOpen ? 'ms-open' : ''}"
+        >
+          <div class="flex items-center gap-1.5 min-w-0 flex-1 pr-2">
+            <span class="truncate ${selectedVal ? 'text-slate-900 font-extrabold' : 'text-slate-600 font-bold'}">
+              ${escapeHtml(summaryText)}
+            </span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${selectedVal ? `
+              <span class="px-1.5 py-0.2 text-[9.5px] font-black rounded-full bg-[#15803d] text-white leading-tight">
+                1
+              </span>
+            ` : ''}
+            <svg class="w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${isOpen ? 'rotate-180 text-[#15803d]' : ''}" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </button>
+
+        <div id="msPanel_month_year" class="ms-panel ${isOpen ? '' : 'hidden'}" onclick="event.stopPropagation()">
+          <div class="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-extrabold">
+            <span class="text-slate-500 uppercase tracking-wider">Select Single Month</span>
+            <button
+              type="button"
+              onclick="selectSingleMonth('')"
+              class="text-rose-600 hover:underline uppercase tracking-wider"
+            >
+              Reset to All
+            </button>
+          </div>
+          ${showSearch ? `
+            <div class="p-1.5 border-b border-slate-100">
+              <input
+                type="text"
+                placeholder="Search month..."
+                oninput="filterSingleMonthList(this.value)"
+                class="ms-search-input w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-[#15803d]"
+              />
+            </div>
+          ` : ''}
+          <div id="msList_month_year" class="max-h-48 overflow-y-auto bosch-sidebar-scroll p-1.5 space-y-0.5">
+            ${optionsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectSingleMonth(monthVal) {
+      STATE.filters.month_year = monthVal ? String(monthVal).trim() : '';
+      OPEN_MS_KEY = null;
+      document.querySelectorAll('[id^="msPanel_"]').forEach(panel => {
+        panel.classList.add('hidden');
+        const btn = panel.previousElementSibling;
+        if (btn) btn.classList.remove('ms-open');
+      });
+      onFilterChange('month_year');
+    }
+
+    function filterSingleMonthList(query) {
+      const q = (query || '').trim().toLowerCase();
+      const listEl = document.getElementById('msList_month_year');
+      if (!listEl) return;
+      listEl.querySelectorAll('button[data-opt-label]').forEach(btn => {
+        const lbl = btn.getAttribute('data-opt-label') || '';
+        btn.style.display = (!q || lbl.includes(q)) ? 'flex' : 'none';
+      });
+    }
+
+    function toggleMsDropdown(event, key) {
+      event.stopPropagation();
+      if (OPEN_MS_KEY === key) {
+        OPEN_MS_KEY = null;
+      } else {
+        OPEN_MS_KEY = key;
+      }
+      document.querySelectorAll('[id^="msPanel_"]').forEach(panel => {
+        const pKey = panel.id.replace('msPanel_', '');
+        const btn = panel.previousElementSibling;
+        if (pKey === OPEN_MS_KEY) {
+          panel.classList.remove('hidden');
+          if (btn) btn.classList.add('ms-open');
+        } else {
+          panel.classList.add('hidden');
+          if (btn) btn.classList.remove('ms-open');
+        }
+      });
+    }
+
+    function filterMsOptionList(key, query) {
+      const q = (query || '').trim().toLowerCase();
+      const listEl = document.getElementById(`msList_${key}`);
+      if (!listEl) return;
+      listEl.querySelectorAll('.ms-option-row').forEach(row => {
+        const lbl = row.getAttribute('data-opt-label') || '';
+        row.style.display = (!q || lbl.includes(q)) ? 'flex' : 'none';
+      });
+    }
+
+    function toggleMsOption(key, val, isChecked) {
+      const allTokenKeys = new Set(['product', 'planner', 'category']);
+      const allToken = allTokenKeys.has(key) ? 'ALL' : null;
+      const curList = parseSelectedList(STATE.filters[key], allToken);
+      const curSet = new Set(curList);
+
+      if (isChecked) {
+        curSet.add(val);
+      } else {
+        curSet.delete(val);
+      }
+
+      const nextArr = Array.from(curSet);
+      if (allToken) {
+        STATE.filters[key] = nextArr.length > 0 ? nextArr.join(',') : 'ALL';
+      } else {
+        STATE.filters[key] = nextArr.join(',');
+      }
+      onFilterChange(key);
+    }
+
+    function selectAllMsOptions(key) {
+      if (!STATE.data || !STATE.data.filter_options) return;
+      const optMap = {
+        year: STATE.data.filter_options.years || []
+      };
+      const allOpts = optMap[key] || [];
+      STATE.filters[key] = allOpts.join(',');
+      onFilterChange(key);
+    }
+
+    function clearMsOptions(key) {
+      STATE.filters[key] = '';
+      onFilterChange(key);
+    }
+
+    document.addEventListener('click', () => {
+      if (OPEN_MS_KEY !== null) {
+        OPEN_MS_KEY = null;
+        document.querySelectorAll('[id^="msPanel_"]').forEach(panel => {
+          panel.classList.add('hidden');
+          const btn = panel.previousElementSibling;
+          if (btn) btn.classList.remove('ms-open');
+        });
+      }
+    });
+
+    function renderHeaderAndFilters(payload) {
+      document.getElementById('headerPlant').textContent = payload.meta.plant || 'ChkP 1810';
+      document.getElementById('headerLastRefresh').textContent = payload.meta.last_refresh;
+
+      const monthLabelMap = {};
+      const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      (payload.filter_options.month_years || []).forEach(mStr => {
+        const parts = String(mStr).split('-');
+        if (parts.length === 2) {
+          const m = parseInt(parts[0], 10);
+          const y = parts[1];
+          if (m >= 1 && m <= 12) {
+            monthLabelMap[mStr] = `${MONTH_NAMES[m - 1]}-${y.slice(-2)} (${MONTH_NAMES[m - 1]} ${y})`;
+            return;
+          }
+        }
+        monthLabelMap[mStr] = mStr;
+      });
+
+      const mLabel = payload.active_filters.month_year
+        ? (monthLabelMap[payload.active_filters.month_year] || payload.active_filters.month_year)
+        : 'All Months';
+      document.getElementById('activeFilterBadge').textContent =
+        `${payload.active_filters.value_stream} • Year ${payload.active_filters.year} • ${mLabel}`;
+
+      const tblYrLbl = document.getElementById('tableYearLabel');
+      if (tblYrLbl) {
+        tblYrLbl.textContent = `Year ${payload.active_filters.year} • ${mLabel}`;
+      }
+
+      const noTargetBanner = document.getElementById('noTargetBanner');
+      if (noTargetBanner) {
+        if (payload.meta && payload.meta.target_specified === false) {
+          noTargetBanner.classList.remove('hidden');
+        } else {
+          noTargetBanner.classList.add('hidden');
+        }
+      }
+
+      const loadedPlannersEl = document.getElementById('loadedPlannersList');
+      if (loadedPlannersEl) {
+        const plannersLoaded = (payload.meta.source_info && payload.meta.source_info.lop3_planners) || [];
+        loadedPlannersEl.textContent = plannersLoaded.length ? plannersLoaded.join(' • ') : 'None';
+      }
+
+      renderMultiSelectWidget({
+        key: 'year',
+        options: payload.filter_options.years || [],
+        selectedRaw: payload.active_filters.year,
+        placeholder: 'Select Year(s)'
+      });
+
+      renderSingleSelectMonthWidget({
+        options: payload.filter_options.month_years || [],
+        selectedRaw: payload.active_filters.month_year,
+        placeholder: 'All Months (Year Average)',
+        labelMap: monthLabelMap
+      });
+    }
+
+    function highlightQuickTabs(activeVs) {
+      document.querySelectorAll('.vs-tab-btn').forEach(btn => {
+        const vs = btn.getAttribute('data-vs');
+        if (vs === activeVs) {
+          btn.className = 'vs-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#15803d] text-white shadow transition';
+        } else {
+          btn.className = 'vs-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-200 hover:bg-white/10 transition';
+        }
+      });
+    }
+
+    function getSummaryCardVisualMeta(card) {
+      const isNeg = card.status === 'negative';
+      const isPos = card.status === 'positive';
+
+      const statusAccent = isNeg ? '#e20015' : (isPos ? '#00884a' : '#64748b');
+      const statusAccentEnd = isNeg ? '#b91c1c' : (isPos ? '#15803d' : '#94a3b8');
+      const statusGlow = isNeg ? 'rgba(226, 0, 21, 0.16)' : (isPos ? 'rgba(0, 136, 74, 0.16)' : 'rgba(100, 116, 139, 0.14)');
+      const statusChip = isNeg
+        ? 'bg-red-50 text-[#e20015] border-red-200'
+        : (isPos ? 'bg-emerald-50 text-[#00884a] border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-300');
+
+      const icons = {
+        'CARD_STOTAL': `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>`,
+        'CARD_OTOTAL': `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`,
+        'CARD_SRMSTORE': `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>`,
+        'CARD_LOP3_TOTAL': `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>`
+      };
+
+      return {
+        accent: statusAccent,
+        accentEnd: statusAccentEnd,
+        softGlow: statusGlow,
+        iconBg: `linear-gradient(135deg, ${statusAccent} 0%, ${statusAccentEnd} 100%)`,
+        chipBg: statusChip,
+        svgIcon: icons[card.id] || icons['CARD_STOTAL']
+      };
+    }
+
+    function openSummaryCardTrend(cardId, code, label) {
+      if (!STATE.data || !STATE.data.trends) return;
+      if (cardId === 'CARD_LOP3_TOTAL') {
+        const lop3Keys = Object.keys(STATE.data.trends).filter(k => k.startsWith('LOP3:'));
+        if (lop3Keys.length > 0) {
+          openTrendModal(label, lop3Keys);
+        }
+      } else if (STATE.data.trends[code]) {
+        openTrendModal(label, [code]);
+      }
+    }
+
+    function renderSummaryCards(cards) {
+      const container = document.getElementById('summaryCardsGrid');
+      container.innerHTML = cards.map(c => {
+        const theme = getSummaryCardVisualMeta(c);
+        const hasData = c.has_data !== false && c.delta_pct_formatted !== 'No data';
+        const isNoTarget = c.benchmark_value <= 0;
+
+        let badgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
+        let statusDotStyle = 'background-color: #94a3b8;';
+        let heroValColor = 'text-slate-900';
+        let statusText = 'Neutral';
+
+        if (!hasData) {
+          badgeClass = 'bg-amber-50 text-amber-700 border-amber-300 font-extrabold';
+          statusDotStyle = 'background-color: #f59e0b;';
+          heroValColor = 'text-slate-400';
+          statusText = 'No data for date';
+        } else if (!isNoTarget) {
+          if (c.status === 'negative') {
+            badgeClass = 'bg-[#e20015] text-white border-[#e20015] shadow-xs';
+            statusDotStyle = 'background-color: #e20015;';
+            heroValColor = 'text-[#e20015]';
+            statusText = 'Above Target';
+          } else if (c.status === 'positive') {
+            badgeClass = 'bg-[#00884a] text-white border-[#00884a] shadow-xs';
+            statusDotStyle = 'background-color: #00884a;';
+            heroValColor = 'text-[#00884a]';
+            statusText = 'Within Target';
+          }
+        }
+
+        const formattedPct = !hasData ? 'No data' : (c.delta_pct_formatted || fmtRelPct(c.delta_pct));
+        const benchText = !hasData
+          ? `<span class="text-amber-700 font-bold">No data in Sheet1</span>`
+          : (isNoTarget
+              ? `<span class="text-slate-500 font-bold">No target specified</span>`
+              : `<span class="text-slate-400 font-semibold">${escapeHtml(c.benchmark_label)}:</span> <strong class="text-slate-800 font-extrabold kpi-table-nums">${fmtNum(c.benchmark_value)}</strong>`);
+
+        const badgeText = !hasData ? 'No data' : (isNoTarget ? 'No target' : formattedPct);
+
+        let fillPct = 0;
+        if (hasData && !isNoTarget && c.benchmark_value > 0) {
+          fillPct = Math.min(100, Math.max(8, Math.round((c.value / c.benchmark_value) * 100)));
+        }
+        const barGradient = !hasData
+          ? 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)'
+          : `linear-gradient(90deg, ${theme.accent} 0%, ${theme.accentEnd} 100%)`;
+
+        return `
+          <div
+            onclick="openSummaryCardTrend('${escapeHtml(c.id)}', '${escapeHtml(c.code)}', '${escapeHtml(c.label)}')"
+            style="--card-accent: ${escapeHtml(theme.accent)}; --card-accent-soft: ${escapeHtml(theme.softGlow)};"
+            class="summary-kpi-card cursor-pointer group flex flex-col justify-between"
+            title="Click to view interactive monthly trend for ${escapeHtml(c.label)}"
+          >
+            <div class="h-1.5 w-full" style="background: ${barGradient};"></div>
+            <div class="card-ambient-glow"></div>
+
+            <div class="p-4 flex-1 flex flex-col justify-between relative z-10">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center space-x-3 min-w-0">
+                  <div class="relative shrink-0">
+                    <div
+                      class="w-11 h-11 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white/80 group-hover:scale-105 transition-transform duration-200"
+                      style="background: ${theme.iconBg};"
+                    >
+                      ${theme.svgIcon}
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full ring-2 ring-white" style="${statusDotStyle}"></span>
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="px-1.5 py-0.5 text-[9.5px] font-black uppercase tracking-wider rounded border ${theme.chipBg}">
+                        ${escapeHtml(c.code)}
+                      </span>
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider truncate" style="color: ${theme.accent};">
+                        ${escapeHtml(statusText)}
+                      </span>
+                    </div>
+                    <h4 class="text-[11px] font-extrabold uppercase tracking-wide text-slate-600 truncate mt-1" title="${escapeHtml(c.label)}">
+                      ${escapeHtml(c.label)}
+                    </h4>
+                  </div>
+                </div>
+
+                <div class="shrink-0 p-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-400 group-hover:text-slate-700 group-hover:border-slate-300 transition" title="Open Trend Chart">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="flex items-baseline justify-between gap-2 mt-3 pt-1">
+                <div class="flex items-baseline space-x-1.5 min-w-0">
+                  <span class="text-[20px] font-black tracking-tight ${heroValColor} kpi-table-nums leading-none">
+                    ${fmtNum(c.value)}
+                  </span>
+                  <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                    ${escapeHtml(c.unit)}
+                  </span>
+                </div>
+
+                <span class="inline-flex items-center text-[12px] font-black px-2.5 py-0.5 rounded-full border shrink-0 kpi-table-nums ${badgeClass}">
+                  ${escapeHtml(badgeText)}
+                </span>
+              </div>
+
+              <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+                <div class="summary-kpi-progress-track">
+                  <div class="summary-kpi-progress-bar" style="width: ${fillPct}%; background: ${barGradient};"></div>
+                </div>
+                <div class="flex items-center justify-between text-[10.5px]">
+                  <div class="truncate">
+                    ${benchText}
+                  </div>
+                  <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                    ${escapeHtml(STATE.filters.year || '')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function hasValidTrendSeries(keys) {
+      if (!STATE.data || !STATE.data.trends || !Array.isArray(keys)) return false;
+      return keys.some(k => {
+        const s = STATE.data.trends[k];
+        return s && Array.isArray(s.labels) && s.labels.length > 0;
+      });
+    }
+
+    function buildTier12CardHtml(card, widthClass = 'w-[332px]') {
+      let dotStyle = 'background-color: #94a3b8;';
+      let cardBorderStyle = '';
+      if (card.status === 'negative') {
+        dotStyle = 'background-color: #e20015;';
+        cardBorderStyle = 'border-color: #e20015; border-width: 1.5px;';
+      } else if (card.status === 'positive') {
+        dotStyle = 'background-color: #00884a;';
+        cardBorderStyle = 'border-color: #00884a; border-width: 1.5px;';
+      }
+
+      const rowsHtml = card.rows.map(r => {
+        let rowBgClass = 'hover:bg-slate-50/80';
+        let valColorStyle = 'color: #0f172a;';
+        let catBadgeHtml = escapeHtml(r.category);
+        const cmpTooltip = `Actual: ${fmtNum(r.values)} vs Target: ${fmtNum(r.benchmark_val)} (${r.delta_pct_formatted || ''})`;
+
+        if (r.status === 'negative') {
+          rowBgClass = 'bg-red-50/50 hover:bg-red-100/60';
+          valColorStyle = 'color: #e20015;';
+          catBadgeHtml = `<span class="inline-flex items-center gap-1.5 text-[#e20015] font-extrabold"><span class="w-2 h-2 rounded-full bg-[#e20015] shrink-0"></span>${escapeHtml(r.category)}</span>`;
+        } else if (r.status === 'positive') {
+          rowBgClass = 'bg-emerald-50/50 hover:bg-emerald-100/60';
+          valColorStyle = 'color: #00884a;';
+          catBadgeHtml = `<span class="inline-flex items-center gap-1.5 text-[#00884a] font-extrabold"><span class="w-2 h-2 rounded-full bg-[#00884a] shrink-0"></span>${escapeHtml(r.category)}</span>`;
+        }
+
+        return `
+          <tr class="border-t border-slate-100 ${rowBgClass}" title="${escapeHtml(cmpTooltip)}">
+            <td class="py-1.5 pl-2 pr-1 font-bold text-slate-800 text-left truncate">${catBadgeHtml}</td>
+            <td class="py-1.5 px-1 text-right font-mono kpi-table-nums text-slate-600">${fmtNum(r.cf02)}</td>
+            <td class="py-1.5 px-1 text-right font-mono kpi-table-nums text-slate-600">${fmtNum(r.cf05)}</td>
+            <td class="py-1.5 px-1 text-right font-mono kpi-table-nums text-slate-500">${fmtNum(r.cf09)}</td>
+            <td class="py-1.5 px-1 text-right font-mono kpi-table-nums font-bold text-[#8b2c86]" title="Target (Main Sheet)">${fmtNum(r.target_val !== undefined && r.target_val !== null ? r.target_val : (r.target !== undefined && r.target !== null ? r.target : (r.benchmark_val !== undefined ? r.benchmark_val : r.pa)))}</td>
+            <td class="py-1.5 pl-1 pr-2 text-right font-mono kpi-table-nums font-extrabold" style="${valColorStyle}">${fmtNum(r.values)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const catKeys = card.rows.map(r => r.category);
+      const showGraphBtn = hasValidTrendSeries(catKeys);
+      const catsJson = escapeHtml(JSON.stringify(catKeys));
+      const hasPeople = Array.isArray(card.planners) && card.planners.length > 0;
+
+      return `
+        <div id="${escapeHtml(card.id)}" data-search="${escapeHtml(card.title + ' ' + catKeys.join(' '))}"
+             class="kpi-node-card ${widthClass}" style="${cardBorderStyle}">
+          <div class="kpi-node-header px-2.5 py-1.5 flex items-center justify-between">
+            <div class="w-10 flex items-center space-x-1.5 shrink-0">
+              <span class="w-3.5 h-3.5 rounded-full ring-2 ring-white shrink-0 shadow-xs" style="${dotStyle}"></span>
+              ${showGraphBtn ? `
+                <button onclick="openTrendModal('${escapeHtml(card.title)}', ${catsJson})"
+                        title="Open Monthly Trend Graph"
+                        class="p-0.5 rounded hover:bg-black/10 text-slate-900 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+
+            <span class="flex-1 text-center text-xs font-black text-slate-900 tracking-wide uppercase truncate px-1">
+              ${escapeHtml(card.title)}
+            </span>
+
+            <div class="w-10 flex justify-end shrink-0">
+              ${hasPeople ? `
+                <button onclick="openCustomPeopleModal('${escapeHtml(card.title)}', '${escapeHtml(card.id)}')"
+                        title="View Responsible People / Planners"
+                        class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 transition">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="p-1.5">
+            <table class="w-full table-fixed text-[11px] border-collapse">
+              <colgroup>
+                <col class="w-[23%]" />
+                <col class="w-[15%]" />
+                <col class="w-[15%]" />
+                <col class="w-[15%]" />
+                <col class="w-[16%]" />
+                <col class="w-[16%]" />
+              </colgroup>
+              <thead>
+                <tr class="text-[10px] font-extrabold text-slate-600 border-b border-slate-200 bg-slate-50">
+                  <th class="py-1 pl-2 pr-1 text-left">Category</th>
+                  <th class="py-1 px-1 text-right">CF02</th>
+                  <th class="py-1 px-1 text-right">CF05</th>
+                  <th class="py-1 px-1 text-right">CF09</th>
+                  <th class="py-1 px-1 text-right text-[#8b2c86]" title="Target (Main Sheet)">Target</th>
+                  <th class="py-1 pl-1 pr-2 text-right">Values</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildTier3ParentCardHtml(branch) {
+      let dotStyle = 'background-color: #94a3b8;';
+      let cardBorderStyle = '';
+      let valColorStyle = 'color: #0f172a;';
+      let rowBgClass = '';
+      const hasData = branch.has_data !== false;
+
+      if (!hasData) {
+        dotStyle = 'background-color: #f59e0b;';
+        valColorStyle = 'color: #94a3b8;';
+        rowBgClass = 'bg-amber-50/20';
+      } else if (branch.status === 'negative') {
+        dotStyle = 'background-color: #e20015;';
+        cardBorderStyle = 'border-color: #e20015; border-width: 1.5px;';
+        valColorStyle = 'color: #e20015;';
+        rowBgClass = 'bg-red-50/50';
+      } else if (branch.status === 'positive') {
+        dotStyle = 'background-color: #00884a;';
+        cardBorderStyle = 'border-color: #00884a; border-width: 1.5px;';
+        valColorStyle = 'color: #00884a;';
+        rowBgClass = 'bg-emerald-50/50';
+      }
+
+      const childTrendKeys = (branch.children || []).map(ch => `LOP3:${branch.product}:${ch.category}`);
+      const showGraphBtn = hasValidTrendSeries(childTrendKeys);
+      const trendKeysJson = escapeHtml(JSON.stringify(childTrendKeys));
+
+      const allBranchPlanners = [];
+      (branch.children || []).forEach(ch => {
+        (ch.planners || []).forEach(p => {
+          if (p.planner && p.planner.trim() !== '' && p.planner !== '-') {
+            allBranchPlanners.push(p);
+          }
+        });
+      });
+      const showPeopleBtn = true;
+
+      return `
+        <div id="${escapeHtml(branch.id)}" data-search="${escapeHtml(branch.title + ' ' + branch.product)}"
+             class="kpi-node-card w-[285px]" style="${cardBorderStyle}">
+          <div class="kpi-node-header px-2.5 py-1.5 flex items-center justify-between">
+            <div class="w-10 flex items-center space-x-1.5 shrink-0">
+              <span class="w-3.5 h-3.5 rounded-full ring-2 ring-white shrink-0 shadow-xs" style="${dotStyle}"></span>
+              ${showGraphBtn ? `
+                <button onclick="openTrendModal('Product : ${escapeHtml(branch.product)}', ${trendKeysJson})"
+                        title="Open Product Monthly Trend Graph"
+                        class="p-0.5 rounded hover:bg-black/10 text-slate-900 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+
+            <span class="flex-1 text-center text-xs font-black text-slate-900 uppercase truncate px-1">
+              ${escapeHtml(branch.product)}
+            </span>
+
+            <div class="w-10 flex justify-end shrink-0">
+              ${showPeopleBtn ? `
+                <button onclick="openProductPlannerModal('${escapeHtml(branch.slot)}')"
+                        title="View Responsible Planners (${escapeHtml(branch.product)})"
+                        class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 transition">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="p-1.5">
+            <table class="w-full table-fixed text-[11px] border-collapse">
+              <colgroup>
+                <col class="w-[24%]" />
+                <col class="w-[26%]" />
+                <col class="w-[25%]" />
+                <col class="w-[25%]" />
+              </colgroup>
+              <thead>
+                <tr class="text-[10px] font-extrabold text-slate-600 border-b border-slate-200 bg-slate-50">
+                  <th class="py-1 pl-2 pr-1 text-left">Product</th>
+                  <th class="py-1 px-1 text-right">ValLOP3</th>
+                  <th class="py-1 px-1 text-right">Target</th>
+                  <th class="py-1 pl-1 pr-2 text-right">LOP3 DIO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="font-bold text-slate-900 ${rowBgClass}">
+                  <td class="py-1.5 pl-2 pr-1 text-left truncate" style="${valColorStyle}">${escapeHtml(branch.product)}</td>
+                  <td class="py-1.5 px-1 text-right font-mono kpi-table-nums font-extrabold" style="${valColorStyle}">${fmtNum(branch.val_lop3)}</td>
+                  <td class="py-1.5 px-1 text-right font-mono kpi-table-nums text-slate-500">${fmtNum(branch.target_val)}</td>
+                  <td class="py-1.5 pl-1 pr-2 text-right font-mono kpi-table-nums" style="${valColorStyle}">${fmtNum(branch.lop3_dio)}</td>
+                </tr>
+              </tbody>
+            </table>
+            ${!hasData ? `
+              <div class="mt-1 px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold text-center">
+                No data available for this date
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function buildTier3ChildCardHtml(slotKey, child) {
+      let dotStyle = 'background-color: #94a3b8;';
+      let cardBorderStyle = '';
+      let valColorStyle = 'color: #0f172a;';
+      let rowBgClass = '';
+      const hasData = child.has_data !== false;
+
+      if (!hasData) {
+        dotStyle = 'background-color: #f59e0b;';
+        valColorStyle = 'color: #94a3b8;';
+        rowBgClass = 'bg-amber-50/20';
+      } else if (child.status === 'negative') {
+        dotStyle = 'background-color: #e20015;';
+        cardBorderStyle = 'border-color: #e20015; border-width: 1.5px;';
+        valColorStyle = 'color: #e20015;';
+        rowBgClass = 'bg-red-50/50';
+      } else if (child.status === 'positive') {
+        dotStyle = 'background-color: #00884a;';
+        cardBorderStyle = 'border-color: #00884a; border-width: 1.5px;';
+        valColorStyle = 'color: #00884a;';
+        rowBgClass = 'bg-emerald-50/50';
+      }
+
+      const trendKey = `LOP3:${child.product}:${child.category}`;
+      const showGraphBtn = hasValidTrendSeries([trendKey]);
+      const trendArrJson = escapeHtml(JSON.stringify([trendKey]));
+
+      const validPlanners = (child.planners || []).filter(
+        p => p.planner && p.planner.trim() !== '' && p.planner !== '-'
+      );
+      const showPeopleBtn = true;
+      const plannerNames = validPlanners.length > 0 ? validPlanners.map(p => p.planner).join(', ') : 'No planner assigned';
+
+      return `
+        <div id="${escapeHtml(child.id)}" data-search="${escapeHtml(child.product + ' ' + child.category + ' ' + plannerNames)}"
+             class="kpi-node-card w-full" style="${cardBorderStyle}">
+          <div class="kpi-node-header px-2 py-1 flex items-center justify-between">
+            <div class="w-8 flex items-center space-x-1 shrink-0">
+              <span class="w-3 h-3 rounded-full ring-2 ring-white shrink-0 shadow-xs" style="${dotStyle}"></span>
+              ${showGraphBtn ? `
+                <button onclick="openTrendModal('${escapeHtml(child.product + ' — ' + child.category)}', ${trendArrJson})"
+                        title="Open LOP3 Monthly Trend Graph"
+                        class="p-0.5 rounded hover:bg-black/10 text-slate-900 transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-6"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+
+            <span class="flex-1 text-center text-[11px] font-black text-slate-900 uppercase truncate px-1">
+              ${escapeHtml(child.category)}
+            </span>
+
+            <div class="w-8 flex justify-end shrink-0">
+              ${showPeopleBtn ? `
+                <button onclick="openChildPlannerModal('${escapeHtml(slotKey)}', '${escapeHtml(child.category)}')"
+                        title="View Planner: ${escapeHtml(plannerNames)}"
+                        class="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 shrink-0 transition">
+                  <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="p-1">
+            <table class="w-full table-fixed text-[10.5px] border-collapse">
+              <colgroup>
+                <col class="w-[30%]" />
+                <col class="w-[25%]" />
+                <col class="w-[23%]" />
+                <col class="w-[22%]" />
+              </colgroup>
+              <thead>
+                <tr class="text-[9.5px] font-extrabold text-slate-600 border-b border-slate-200 bg-slate-50">
+                  <th class="py-1 pl-1.5 pr-0.5 text-left">Category</th>
+                  <th class="py-1 px-0.5 text-right">ValLOP3</th>
+                  <th class="py-1 px-0.5 text-right">Target</th>
+                  <th class="py-1 pl-0.5 pr-1.5 text-right">DIO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="font-bold text-slate-900 ${rowBgClass}">
+                  <td class="py-1.5 pl-1.5 pr-0.5 text-left truncate" style="${valColorStyle}" title="${escapeHtml(child.category)}">${escapeHtml(child.category)}</td>
+                  <td class="py-1.5 px-0.5 text-right font-mono kpi-table-nums font-extrabold" style="${valColorStyle}">${fmtNum(child.val_lop3)}</td>
+                  <td class="py-1.5 px-0.5 text-right font-mono kpi-table-nums text-slate-500">${fmtNum(child.target_val)}</td>
+                  <td class="py-1.5 pl-0.5 pr-1.5 text-right font-mono kpi-table-nums" style="${valColorStyle}">${fmtNum(child.lop3_dio)}</td>
+                </tr>
+              </tbody>
+            </table>
+            ${!hasData ? `
+              <div class="mt-0.5 px-1 py-0.2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-bold text-center">
+                No data
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderKpiTree(tree) {
+      document.getElementById('tier1Container').innerHTML = buildTier12CardHtml(tree.tier1_root, 'w-[410px]');
+      document.getElementById('tier2AContainer').innerHTML = tree.tier2a
+        .map(c => buildTier12CardHtml(c, 'w-[370px]'))
+        .join('');
+      document.getElementById('tier2BContainer').innerHTML = tree.tier2b
+        .map(c => buildTier12CardHtml(c, 'w-[340px]'))
+        .join('');
+
+      // Dynamic No Data Notice for Tier 3
+      const noticeEl = document.getElementById('tier3NoDataNotice');
+      if (noticeEl) {
+        if (STATE.data && STATE.data.meta && STATE.data.meta.has_lop3_data === false) {
+          const filterDateStr = STATE.filters.month_year || STATE.filters.year || 'selected date';
+          noticeEl.className = "mb-4 p-4 rounded-xl border border-amber-300 bg-amber-50/95 text-amber-950 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs";
+          noticeEl.innerHTML = `
+            <div class="flex items-center space-x-3 text-left">
+              <div class="w-8 h-8 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center font-black text-sm shrink-0">!</div>
+              <div>
+                <p class="font-extrabold text-xs uppercase tracking-wide text-amber-900">No Data Available For That Date</p>
+                <p class="text-xs text-amber-800">
+                  No records exist in <strong>KPI LOP3.xlsx (Sheet1)</strong> for <strong>${escapeHtml(filterDateStr)}</strong>. Update the Excel file with records for this date and retry.
+                </p>
+              </div>
+            </div>
+            <button onclick="reloadExcelFiles()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition flex items-center space-x-1.5 whitespace-nowrap">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span>Update Data &amp; Retry</span>
+            </button>
+          `;
+        } else {
+          noticeEl.className = "hidden";
+          noticeEl.innerHTML = "";
+        }
+      }
+
+      document.getElementById('tier3Parent4WContainer').innerHTML = buildTier3ParentCardHtml(tree.tier3['4W']);
+      const children4W = tree.tier3['4W'].children || [];
+      const cols4W = Math.max(children4W.length, 1);
+      const c4wEl = document.getElementById('tier3Children4WContainer');
+      c4wEl.style.gridTemplateColumns = `repeat(${cols4W}, minmax(0, 1fr))`;
+      c4wEl.innerHTML = children4W.map(ch => buildTier3ChildCardHtml('4W', ch)).join('');
+
+      document.getElementById('tier3Parent2WContainer').innerHTML = buildTier3ParentCardHtml(tree.tier3['2W']);
+      const children2W = tree.tier3['2W'].children || [];
+      const cols2W = Math.max(children2W.length, 1);
+      const c2wEl = document.getElementById('tier3Children2WContainer');
+      c2wEl.style.gridTemplateColumns = `repeat(${cols2W}, minmax(0, 1fr))`;
+      c2wEl.innerHTML = children2W.map(ch => buildTier3ChildCardHtml('2W', ch)).join('');
+
+      if (STATE.searchQuery) {
+        handleGlobalSearch(STATE.searchQuery);
+      }
+    }
+
+    function drawOrthogonalConnectors() {
+      const svg = document.getElementById('treeConnectorSvg');
+      const wrapper = document.getElementById('treeCanvasWrapper');
+      if (!svg || !wrapper || STATE.view !== 'tree') return;
+
+      const wrapRect = wrapper.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${wrapRect.width} ${wrapRect.height}`);
+
+      const strokeCol = '#1e293b';
+
+      const defs = `
+        <defs>
+          <marker id="boschArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="${strokeCol}" />
+          </marker>
+        </defs>
+      `;
+
+      let paths = '';
+
+      function connectNodes(parentId, childId, splitRatio = 0.5) {
+        const pEl = document.getElementById(parentId);
+        const cEl = document.getElementById(childId);
+        if (!pEl || !cEl) return;
+
+        const pRect = pEl.getBoundingClientRect();
+        const cRect = cEl.getBoundingClientRect();
+
+        const x1 = pRect.left - wrapRect.left + pRect.width / 2;
+        const y1 = pRect.bottom - wrapRect.top;
+        const x2 = cRect.left - wrapRect.left + cRect.width / 2;
+        const y2 = cRect.top - wrapRect.top - 3;
+
+        const midY = y1 + (y2 - y1) * splitRatio;
+        paths += `<path d="M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}"
+                        stroke="${strokeCol}" stroke-width="1.75" fill="none" marker-end="url(#boschArrow)" />`;
+      }
+
+      ['NODE_FG_INV', 'NODE_WIP', 'NODE_RM_INV'].forEach(cid => {
+        connectNodes('NODE_PLANT_ROOT', cid, 0.5);
+      });
+
+      connectNodes('NODE_FG_INV', 'NODE_FG_STORE', 0.5);
+      connectNodes('NODE_FG_INV', 'NODE_FG_GIT', 0.5);
+
+      connectNodes('NODE_RM_INV', 'NODE_RM_STORE', 0.5);
+      connectNodes('NODE_RM_INV', 'NODE_RM_GIT', 0.5);
+
+      connectNodes('NODE_RM_STORE', 'NODE_LOP3_4W', 0.45);
+      connectNodes('NODE_RM_STORE', 'NODE_LOP3_2W', 0.12);
+
+      if (STATE.data && STATE.data.tree && STATE.data.tree.tier3['4W']) {
+        STATE.data.tree.tier3['4W'].children.forEach(ch => {
+          connectNodes('NODE_LOP3_4W', ch.id, 0.5);
+        });
+      }
+
+      if (STATE.data && STATE.data.tree && STATE.data.tree.tier3['2W']) {
+        STATE.data.tree.tier3['2W'].children.forEach(ch => {
+          connectNodes('NODE_LOP3_2W', ch.id, 0.5);
+        });
+      }
+
+      svg.innerHTML = defs + paths;
+    }
+
+    function renderDataTables(tables) {
+      const activeDate = (STATE.filters && (STATE.filters.month_year || STATE.filters.year)) || 'selected date';
+      const cfBody = document.getElementById('cfTableBody');
+      const cfRows = (tables && tables.cf_main) || [];
+      document.getElementById('cfTableCountBadge').textContent = `${cfRows.length} rows`;
+      if (cfRows.length === 0) {
+        cfBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="py-10 px-4 text-center bg-slate-50">
+              <div class="max-w-md mx-auto space-y-2">
+                <p class="font-bold text-xs text-amber-700 uppercase tracking-wide">No Data Available For That Date</p>
+                <p class="text-xs text-slate-500">No records found in <strong>Inventory Actual Vs Forecast.xlsx</strong> matching <strong>${escapeHtml(activeDate)}</strong>. Update the data in the workbook and retry.</p>
+                <button onclick="reloadExcelFiles()" class="mt-2 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold shadow-xs transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  <span>Update Data &amp; Retry</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        cfBody.innerHTML = cfRows.map(r => {
+          let badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Neutral</span>';
+          let valClass = 'text-slate-900';
+          if (r.Status === 'negative') {
+            badge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#e20015] text-white">${escapeHtml(r.Delta_Pct_Formatted || 'Above')}</span>`;
+            valClass = 'text-[#e20015]';
+          } else if (r.Status === 'positive') {
+            badge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#00884a] text-white">${escapeHtml(r.Delta_Pct_Formatted || 'Within')}</span>`;
+            valClass = 'text-[#00884a]';
+          }
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-4 font-bold text-slate-900">${escapeHtml(r.Category)}</td>
+              <td class="py-2 px-4 font-semibold text-slate-600">${escapeHtml(r['Value Stream'])}</td>
+              <td class="py-2 px-4 font-mono text-slate-600">${escapeHtml(r['Month year'])}</td>
+              <td class="py-2 px-4 font-mono text-slate-500">${escapeHtml(r['CAT-YEAR'])}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums">${fmtNum(r.CF02)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums">${fmtNum(r.CF05)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums">${fmtNum(r.CF09)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums font-bold text-[#8b2c86]">${fmtNum(r.Target !== undefined ? r.Target : r.PA_Target)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums font-extrabold ${valClass}">${fmtNum(r.Actual_Value)}</td>
+              <td class="py-2 px-4 text-center">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const lopBody = document.getElementById('lop3TableBody');
+      const lopRows = (tables && tables.lop3) || [];
+      document.getElementById('lop3TableCountBadge').textContent = `${lopRows.length} rows`;
+      if (lopRows.length === 0) {
+        lopBody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-10 px-4 text-center bg-slate-50">
+              <div class="max-w-md mx-auto space-y-2">
+                <p class="font-bold text-xs text-amber-700 uppercase tracking-wide">No Data Available For That Date</p>
+                <p class="text-xs text-slate-500">No records found in <strong>KPI LOP3.xlsx (Sheet1)</strong> matching <strong>${escapeHtml(activeDate)}</strong>. Update the data in the workbook and retry.</p>
+                <button onclick="reloadExcelFiles()" class="mt-2 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold shadow-xs transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  <span>Update Data &amp; Retry</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        lopBody.innerHTML = lopRows.map(r => {
+          let badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Neutral</span>';
+          let valClass = 'text-slate-900';
+          if (r.Status === 'negative') {
+            badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#e20015] text-white">Above Target</span>';
+            valClass = 'text-[#e20015]';
+          } else if (r.Status === 'positive') {
+            badge = '<span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#00884a] text-white">Within Target</span>';
+            valClass = 'text-[#00884a]';
+          }
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-4 font-semibold text-slate-700">${escapeHtml(r['Value Stream'])}</td>
+              <td class="py-2 px-4 font-extrabold text-slate-900">${escapeHtml(r.Product)}</td>
+              <td class="py-2 px-4 font-bold text-emerald-600">${escapeHtml(r.Planner)}</td>
+              <td class="py-2 px-4 font-bold text-slate-800">${escapeHtml(r.Category)}</td>
+              <td class="py-2 px-4 font-mono text-slate-600">${escapeHtml(r['Month year'])}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums font-semibold text-slate-600">${fmtNum(r.Target)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums font-extrabold ${valClass}">${fmtNum(r.ValLOP3)}</td>
+              <td class="py-2 px-4 text-right font-mono kpi-table-nums font-bold ${valClass}">${fmtNum(r['LOP3 DIO'])}</td>
+              <td class="py-2 px-4 text-center">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function onFilterChange(changedKey) {
+      if (changedKey === 'year') {
+        // Reset table-only month_year filter when Year changes so it scopes cleanly to the new year
+        STATE.filters.month_year = '';
+      }
+      loadDashboardData();
+    }
+
+    function quickSelectVS(vsCode) {
+      STATE.filters.value_stream = vsCode;
+      STATE.filters.month_year = '';
+      loadDashboardData();
+    }
+
+    function clearAllFilters() {
+      STATE.filters = {
+        value_stream: STATE.filters.value_stream || 'ESP-ABS',
+        year: '',
+        month_year: ''
+      };
+      document.getElementById('globalSearchInput').value = '';
+      STATE.searchQuery = '';
+      loadDashboardData();
+    }
+
+    function switchMainView(viewMode) {
+      STATE.view = viewMode;
+      const treeSec = document.getElementById('viewTreeSection');
+      const tblSec = document.getElementById('viewTablesSection');
+      const btnTree = document.getElementById('btnViewTree');
+      const btnTbl = document.getElementById('btnViewTables');
+
+      if (viewMode === 'tree') {
+        treeSec.classList.remove('hidden');
+        tblSec.classList.add('hidden');
+        btnTree.className = 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#15803d] text-white shadow transition';
+        btnTbl.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition';
+        requestAnimationFrame(() => drawOrthogonalConnectors());
+      } else {
+        treeSec.classList.add('hidden');
+        tblSec.classList.remove('hidden');
+        btnTbl.className = 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#15803d] text-white shadow transition';
+        btnTree.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition';
+      }
+      notifyParentState();
+    }
+
+    function handleGlobalSearch(query) {
+      STATE.searchQuery = (query || '').trim().toLowerCase();
+      document.querySelectorAll('.kpi-node-card').forEach(card => {
+        const hay = (card.getAttribute('data-search') || '').toLowerCase();
+        if (STATE.searchQuery && hay.includes(STATE.searchQuery)) {
+          card.classList.add('search-match');
+        } else {
+          card.classList.remove('search-match');
+        }
+      });
+    }
+
+    /* ACTION 1: Graph Icon Click -> Strictly Opens Trend Chart Modal */
+    function openTrendModal(cardTitle, categories) {
+      if (!STATE.data || !STATE.data.trends) return;
+      const validCats = (categories || []).filter(c => STATE.data.trends[c] && STATE.data.trends[c].labels.length > 0);
+      if (validCats.length === 0) return;
+
+      const modal = document.getElementById('trendModal');
+      document.getElementById('trendModalTitle').textContent =
+        `${cardTitle} — Monthly Trend (${STATE.filters.value_stream} • Year: ${STATE.filters.year})`;
+      const tabsEl = document.getElementById('trendMetricTabs');
+      tabsEl.innerHTML = validCats.map((cat) => {
+        const disp = cat.startsWith('LOP3:') ? cat.split(':').slice(1).join(' / ') : cat;
+        const sObj = STATE.data.trends[cat] || {};
+        const dotColor = sObj.status === 'negative' ? 'bg-[#e20015]' : (sObj.status === 'positive' ? 'bg-[#00884a]' : 'bg-slate-400');
+        return `
+          <button onclick="renderTrendChartForCategory('${escapeHtml(cat)}')"
+                  id="trendTab_${escapeHtml(cat)}"
+                  class="px-3 py-1 rounded-lg text-xs font-bold border transition inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 border-slate-200">
+            <span class="w-2 h-2 rounded-full ${dotColor}"></span>
+            <span>${escapeHtml(disp)}</span>
+          </button>
+        `;
+      }).join('');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      renderTrendChartForCategory(validCats[0]);
+    }
+
+    function renderTrendChartForCategory(catCode) {
+      const series = STATE.data.trends[catCode];
+      if (!series) return;
+      STATE.activeTrendCat = catCode;
+
+      document.querySelectorAll('#trendMetricTabs button').forEach(b => {
+        const tCat = b.id.replace('trendTab_', '');
+        const tObj = (STATE.data && STATE.data.trends && STATE.data.trends[tCat]) || {};
+        const activeBg = tObj.status === 'negative'
+          ? 'bg-[#e20015] text-white border-[#e20015]'
+          : (tObj.status === 'positive' ? 'bg-[#00884a] text-white border-[#00884a]' : 'bg-[#005691] text-white border-[#005691]');
+        const dotSpan = b.querySelector('span');
+
+        if (b.id === `trendTab_${catCode}`) {
+          b.className = `px-3 py-1 rounded-lg text-xs font-extrabold border transition inline-flex items-center gap-1.5 ${activeBg}`;
+          if (dotSpan) dotSpan.className = 'w-2 h-2 rounded-full bg-white';
+        } else {
+          const dCol = tObj.status === 'negative' ? 'bg-[#e20015]' : (tObj.status === 'positive' ? 'bg-[#00884a]' : 'bg-slate-400');
+          b.className = 'px-3 py-1 rounded-lg text-xs font-bold border transition inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 border-slate-200';
+          if (dotSpan) dotSpan.className = `w-2 h-2 rounded-full ${dCol}`;
+        }
+      });
+
+      const ctx = document.getElementById('trendChartCanvas').getContext('2d');
+      if (STATE.trendChartInstance) {
+        STATE.trendChartInstance.destroy();
+      }
+
+      const selYears = parseSelectedList(STATE.filters.year);
+
+      let chartLabels = [];
+      let chartActuals = [];
+      series.labels.forEach((lbl, idx) => {
+        const yrPart = String(lbl).split('-').pop();
+        const yearMatches = selYears.length === 0 || selYears.includes(yrPart);
+        if (yearMatches) {
+          chartLabels.push(lbl);
+          chartActuals.push(series.actuals[idx]);
+        }
+      });
+
+      if (chartLabels.length === 0) {
+        chartLabels = series.labels.slice();
+        chartActuals = series.actuals.slice();
+      }
+
+      const targetNum = Number(series.benchmark_val !== undefined ? series.benchmark_val : (series.target_val || 0));
+      const cardValNum = Number(series.card_value !== undefined ? series.card_value : 0);
+      const formattedTarget = fmtNum(targetNum);
+      const formattedCardVal = fmtNum(cardValNum);
+
+      const isTnsMetric = catCode.trim().toLowerCase() === 'avg tns' || catCode.trim().toLowerCase() === 'tns';
+
+      const pointColors = chartActuals.map(v => {
+        if (targetNum <= 0) return '#005691';
+        if (isTnsMetric) {
+          return v >= targetNum ? '#00884a' : '#e20015';
+        }
+        return v > targetNum ? '#e20015' : '#00884a';
+      });
+
+      const statusBadgeHtml = series.status === 'negative'
+        ? `<span class="px-2 py-0.5 rounded bg-[#e20015] text-white font-extrabold text-[10px]">ABOVE TARGET (RED)</span>`
+        : (series.status === 'positive'
+          ? `<span class="px-2 py-0.5 rounded bg-[#00884a] text-white font-extrabold text-[10px]">WITHIN TARGET (GREEN)</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-extrabold text-[10px]">NEUTRAL</span>`);
+
+      document.getElementById('trendModalSubtitle').innerHTML =
+        `Card Value (Year Avg): <strong class="text-slate-900 font-extrabold">${formattedCardVal}</strong> &nbsp;|&nbsp; Target (Main Sheet): <strong class="text-[#8b2c86] font-extrabold">${formattedTarget}</strong> &nbsp;|&nbsp; ${statusBadgeHtml}`;
+
+      const cleanLabel = catCode.startsWith('LOP3:') ? catCode.split(':').slice(1).join(' - ') : catCode;
+
+      const targetValueLabelPlugin = {
+        id: 'targetValueLabelPlugin',
+        afterDatasetsDraw(chart) {
+          const meta = chart.getDatasetMeta(1);
+          if (!meta || !meta.data || meta.data.length === 0) return;
+
+          const lastPoint = meta.data[meta.data.length - 1];
+          if (!lastPoint) return;
+
+          const c = chart.ctx;
+          c.save();
+          const badgeText = `TGT: ${formattedTarget}`;
+          c.font = '800 11px "Bosch Sans", Inter, Arial, sans-serif';
+          const textWidth = c.measureText(badgeText).width;
+          const padX = 8;
+          const boxW = textWidth + padX * 2;
+          const boxH = 22;
+
+          let boxX = chart.chartArea.right - boxW - 8;
+          let boxY = lastPoint.y - boxH - 6;
+          if (boxY < chart.chartArea.top + 4) {
+            boxY = lastPoint.y + 6;
+          }
+
+          c.fillStyle = '#8b2c86';
+          c.beginPath();
+          if (c.roundRect) {
+            c.roundRect(boxX, boxY, boxW, boxH, 6);
+          } else {
+            c.rect(boxX, boxY, boxW, boxH);
+          }
+          c.fill();
+
+          c.fillStyle = '#ffffff';
+          c.textBaseline = 'middle';
+          c.fillText(badgeText, boxX + padX, boxY + boxH / 2);
+          c.restore();
+        }
+      };
+
+      STATE.trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        plugins: [targetValueLabelPlugin],
+        data: {
+          labels: chartLabels,
+          datasets: [
+            {
+              label: `${cleanLabel} Monthly Actual (Card Value: ${formattedCardVal})`,
+              data: chartActuals,
+              borderColor: '#005691',
+              backgroundColor: 'rgba(0, 86, 145, 0.12)',
+              pointBackgroundColor: pointColors,
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              borderWidth: 3,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              fill: true,
+              tension: 0.25
+            },
+            {
+              label: `TGT: ${formattedTarget}`,
+              data: chartLabels.map(() => targetNum),
+              borderColor: '#8b2c86',
+              backgroundColor: '#8b2c86',
+              borderDash: [6, 4],
+              borderWidth: 2.2,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#000000',
+                font: { size: 11, weight: 'bold' }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed.y;
+                  if (context.datasetIndex === 0 && targetNum > 0) {
+                    const diffState = isTnsMetric
+                      ? (val >= targetNum ? 'Within Target (Green)' : 'Below Target (Red)')
+                      : (val > targetNum ? 'Above Target (Red)' : 'Within Target (Green)');
+                    return `Actual: ${fmtNum(val)} [${diffState}]`;
+                  }
+                  return `TGT: ${fmtNum(val)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#000000', font: { size: 11 } },
+              grid: { color: 'rgba(15, 23, 42, 0.08)' }
+            },
+            y: {
+              ticks: { color: '#000000', font: { size: 11 } },
+              grid: { color: 'rgba(15, 23, 42, 0.08)' }
+            }
+          }
+        }
+      });
+    }
+
+    function closeTrendModal() {
+      const modal = document.getElementById('trendModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /* ACTION 2: User Icon Click -> Strictly Opens People / Planner Breakdown Modal */
+    function openChildPlannerModal(slotKey, categoryName) {
+      if (!STATE.data || !STATE.data.tree || !STATE.data.tree.tier3) return;
+      const branch = STATE.data.tree.tier3[slotKey];
+      if (!branch) return;
+      const child = (branch.children || []).find(c => c.category === categoryName);
+      if (!child) return;
+
+      const hasData = (child.has_data !== false) && child.planners && child.planners.length > 0;
+      const activeDate = (STATE.filters && (STATE.filters.month_year || STATE.filters.year)) || 'All';
+
+      document.getElementById('plannerModalTitle').textContent =
+        `${branch.product} — ${categoryName} Responsible Planner (Sheet1)`;
+      document.getElementById('plannerModalSubtitle').textContent = hasData
+        ? `Value Stream: ${STATE.filters.value_stream} | ValLOP3: ${fmtNum(child.val_lop3)} | Target (Col E): ${fmtNum(child.target_val)} | LOP3 DIO: ${fmtNum(child.lop3_dio)}`
+        : `Value Stream: ${STATE.filters.value_stream} | Filter Date: ${activeDate} (No Sheet1 data available for this date)`;
+
+      populatePlannerModalRows(hasData ? child.planners : []);
+      const modal = document.getElementById('plannerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openProductPlannerModal(slotKey) {
+      if (!STATE.data || !STATE.data.tree || !STATE.data.tree.tier3) return;
+      const branch = STATE.data.tree.tier3[slotKey];
+      if (!branch) return;
+      const allPlanners = [];
+      (branch.children || []).forEach(ch => {
+        (ch.planners || []).forEach(p => {
+          if (p.planner && p.planner.trim() !== '' && p.planner !== '-') {
+            allPlanners.push(p);
+          }
+        });
+      });
+
+      const hasData = (branch.has_data !== false) && (allPlanners.length > 0);
+      const activeDate = (STATE.filters && (STATE.filters.month_year || STATE.filters.year)) || 'All';
+
+      document.getElementById('plannerModalTitle').textContent =
+        `Product : ${branch.product} — Responsible Planners & Categories (Sheet1)`;
+      document.getElementById('plannerModalSubtitle').textContent = hasData
+        ? `Value Stream: ${STATE.filters.value_stream} | Total ValLOP3: ${fmtNum(branch.val_lop3)} | Total Target (Col E): ${fmtNum(branch.target_val)}`
+        : `Value Stream: ${STATE.filters.value_stream} | Filter Date: ${activeDate} (No Sheet1 data available for this date)`;
+
+      populatePlannerModalRows(hasData ? allPlanners : []);
+      const modal = document.getElementById('plannerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openCustomPeopleModal(title, cardId) {
+      if (!STATE.data) return;
+      const activeDate = (STATE.filters && (STATE.filters.month_year || STATE.filters.year)) || 'All';
+      document.getElementById('plannerModalTitle').textContent = `${title} — Responsible Planners`;
+      document.getElementById('plannerModalSubtitle').textContent = `Value Stream: ${STATE.filters.value_stream} | Filter Date: ${activeDate}`;
+      populatePlannerModalRows([]);
+      const modal = document.getElementById('plannerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function populatePlannerModalRows(rows) {
+      const tbody = document.getElementById('plannerModalBody');
+      if (!rows || rows.length === 0) {
+        const activeDate = (STATE.filters && (STATE.filters.month_year || STATE.filters.year)) || 'the selected date';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 px-6 text-center bg-slate-50">
+              <div class="max-w-md mx-auto space-y-3">
+                <div class="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">
+                  <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                </div>
+                <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wide">No Data Available For That Date</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  No records exist in <strong>KPI LOP3.xlsx (Sheet1)</strong> for <strong>${escapeHtml(activeDate)}</strong>.<br/>
+                  Please update the data in the Excel workbook and retry.
+                </p>
+                <div class="pt-2">
+                  <button onclick="reloadExcelFiles()" class="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span>Update Data &amp; Retry</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => {
+        const valColor = r.status === 'negative' ? 'text-[#e20015]' : (r.status === 'positive' ? 'text-[#00884a]' : 'text-slate-900');
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-3.5 font-bold text-slate-900">${escapeHtml(r.planner)}</td>
+            <td class="py-2 px-3.5 font-extrabold text-slate-700">${escapeHtml(r.product)}</td>
+            <td class="py-2 px-3.5 font-bold text-emerald-600">${escapeHtml(r.category)}</td>
+            <td class="py-2 px-3.5 font-mono text-slate-600">${escapeHtml(r.month_year)}</td>
+            <td class="py-2 px-3.5 text-right font-mono kpi-table-nums font-semibold text-slate-600">${fmtNum(r.target_val)}</td>
+            <td class="py-2 px-3.5 text-right font-mono kpi-table-nums font-extrabold ${valColor}">${fmtNum(r.val_lop3)}</td>
+            <td class="py-2 px-3.5 text-right font-mono kpi-table-nums font-bold ${valColor}">${fmtNum(r.lop3_dio)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function closePlannerModal() {
+      const modal = document.getElementById('plannerModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /* EMBEDDABLE PORTAL INTEROPERABILITY */
+    function notifyParentState() {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'KPI_DASHBOARD_STATE',
+          state: {
+            value_stream: (STATE.filters && STATE.filters.value_stream) || 'ESP-ABS',
+            year: (STATE.filters && STATE.filters.year) || '',
+            month_year: (STATE.filters && STATE.filters.month_year) || '',
+            view: STATE.view || 'tree'
+          }
+        }, '*');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (!event.data || typeof event.data !== 'object') return;
+      if (event.data.type === 'SET_VALUE_STREAM' && event.data.payload) {
+        quickSelectVS(event.data.payload);
+      } else if (event.data.type === 'RELOAD_DATA') {
+        reloadExcelFiles();
+      } else if (event.data.type === 'SWITCH_VIEW' && event.data.payload) {
+        switchMainView(event.data.payload);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      requestAnimationFrame(() => drawOrthogonalConnectors());
+    });
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        requestAnimationFrame(() => drawOrthogonalConnectors());
+      });
+      const rootEl = document.getElementById('kpiDashboardRoot') || document.body;
+      if (rootEl) ro.observe(rootEl);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDashboardData();
+    });
+  </script>
+</body>
+</html>
